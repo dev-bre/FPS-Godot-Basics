@@ -1,5 +1,6 @@
 # FPS-Godot-Basics
 Project files for the basics setup of the my FPS project I am building in Godot 4.1
+
 I added all prototype textures and materials used in the project (Thanks to Kenney for their Prototype Texture package).
 
 ![image](https://github.com/dev-bre/FPS-Godot-Basics/assets/905984/3681c6d0-1d99-43c0-b19c-d790ce2b3817)
