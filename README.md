@@ -7,4 +7,4 @@ I added all prototype textures and materials used in the project (Thanks to Kenn
 
 This project is free to use, so feel free to download it, import it, change it!
 
-The projects contains the source files and settings described in my first FPS DevLog video series on YouTube. 
+The project contains the source files and settings described in my first FPS DevLog video series on YouTube. 
