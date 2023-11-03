@@ -1,0 +1,262 @@
+[gd_scene load_steps=25 format=3 uid="uid://c3h85m118qajs"]
+
+[ext_resource type="Material" uid="uid://b3imye0aiisv8" path="res://resources/materials/proto/grid_mat.tres" id="1_4ueoe"]
+[ext_resource type="Texture2D" uid="uid://bbrujxtotj8ot" path="res://resources/materials/proto/kenney_prototype_textures/dark/texture_01.png" id="1_kppni"]
+[ext_resource type="Texture2D" uid="uid://dtfulce01yu15" path="res://resources/materials/proto/kenney_prototype_textures/green/texture_02.png" id="2_2h213"]
+[ext_resource type="Texture2D" uid="uid://ikwot1tcba8v" path="res://resources/materials/proto/kenney_prototype_textures/purple/texture_01.png" id="3_pvsrw"]
+
+[sub_resource type="Shader" id="Shader_vn0av"]
+code = "
+// NOTE: Shader automatically converted from Godot Engine 4.1.2.stable's ProceduralSkyMaterial.
+
+shader_type sky;
+render_mode use_debanding;
+
+uniform vec4 sky_top_color : source_color = vec4(0.385, 0.454, 0.55, 1.0);
+uniform vec4 sky_horizon_color : source_color = vec4(0.646, 0.656, 0.67, 1.0);
+uniform float sky_curve : hint_range(0, 1) = 0.15;
+uniform float sky_energy = 1.0; // In Lux.
+uniform sampler2D sky_cover : filter_linear, source_color, hint_default_black;
+uniform vec4 sky_cover_modulate : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec4 ground_bottom_color : source_color = vec4(0.2, 0.169, 0.133, 1.0);
+uniform vec4 ground_horizon_color : source_color = vec4(0.646, 0.656, 0.67, 1.0);
+uniform float ground_curve : hint_range(0, 1) = 0.02;
+uniform float ground_energy = 1.0;
+uniform float sun_angle_max = 30.0;
+uniform float sun_curve : hint_range(0, 1) = 0.15;
+
+uniform sampler2D cloud_texture;
+uniform sampler2D cloud_texture2;
+uniform vec2 cloud_direction;
+uniform vec2 cloud_direction2;
+uniform vec2 cloud_scale;
+uniform float cloud_distance;
+uniform float cloud_speed;
+uniform float cloud_speed2;
+
+vec3 cloudsMaker(vec3 eye_dir) {
+	vec2 sky_uv = eye_dir.xz / eye_dir.y;
+	vec3 clouds = texture(cloud_texture, (sky_uv*cloud_scale) + (TIME*cloud_direction*cloud_speed* 0.1)).rgb - 
+				  texture(cloud_texture2, (sky_uv * cloud_scale) + (TIME * cloud_direction2 * cloud_speed2* 0.1 )).rgb;
+	clouds = clouds - smoothstep(0.0, eye_dir.y, cloud_distance);
+	clouds = clamp(clouds,0,1);
+	return clouds;
+}
+
+void sky() {
+	float v_angle = acos(clamp(EYEDIR.y, -1.0, 1.0));
+	float c = (1.0 - v_angle / (PI * 0.5));
+	vec3 sky = mix(sky_horizon_color.rgb, sky_top_color.rgb, clamp(1.0 - pow(1.0 - c, 1.0 / sky_curve), 0.0, 1.0));
+	sky *= sky_energy;
+
+	if (LIGHT0_ENABLED) {
+		float sun_angle = acos(dot(LIGHT0_DIRECTION, EYEDIR));
+		if (sun_angle < LIGHT0_SIZE) {
+			sky = LIGHT0_COLOR * LIGHT0_ENERGY;
+		} else if (sun_angle < sun_angle_max) {
+			float c2 = (sun_angle - LIGHT0_SIZE) / (sun_angle_max - LIGHT0_SIZE);
+			sky = mix(LIGHT0_COLOR * LIGHT0_ENERGY, sky, clamp(1.0 - pow(1.0 - c2, 1.0 / sun_curve), 0.0, 1.0));
+		}
+	}
+
+	if (LIGHT1_ENABLED) {
+		float sun_angle = acos(dot(LIGHT1_DIRECTION, EYEDIR));
+		if (sun_angle < LIGHT1_SIZE) {
+			sky = LIGHT1_COLOR * LIGHT1_ENERGY;
+		} else if (sun_angle < sun_angle_max) {
+			float c2 = (sun_angle - LIGHT1_SIZE) / (sun_angle_max - LIGHT1_SIZE);
+			sky = mix(LIGHT1_COLOR * LIGHT1_ENERGY, sky, clamp(1.0 - pow(1.0 - c2, 1.0 / sun_curve), 0.0, 1.0));
+		}
+	}
+
+	if (LIGHT2_ENABLED) {
+		float sun_angle = acos(dot(LIGHT2_DIRECTION, EYEDIR));
+		if (sun_angle < LIGHT2_SIZE) {
+			sky = LIGHT2_COLOR * LIGHT2_ENERGY;
+		} else if (sun_angle < sun_angle_max) {
+			float c2 = (sun_angle - LIGHT2_SIZE) / (sun_angle_max - LIGHT2_SIZE);
+			sky = mix(LIGHT2_COLOR * LIGHT2_ENERGY, sky, clamp(1.0 - pow(1.0 - c2, 1.0 / sun_curve), 0.0, 1.0));
+		}
+	}
+
+	if (LIGHT3_ENABLED) {
+		float sun_angle = acos(dot(LIGHT3_DIRECTION, EYEDIR));
+		if (sun_angle < LIGHT3_SIZE) {
+			sky = LIGHT3_COLOR * LIGHT3_ENERGY;
+		} else if (sun_angle < sun_angle_max) {
+			float c2 = (sun_angle - LIGHT3_SIZE) / (sun_angle_max - LIGHT3_SIZE);
+			sky = mix(LIGHT3_COLOR * LIGHT3_ENERGY, sky, clamp(1.0 - pow(1.0 - c2, 1.0 / sun_curve), 0.0, 1.0));
+		}
+	}
+
+	vec4 sky_cover_texture = texture(sky_cover, SKY_COORDS);
+	sky += (sky_cover_texture.rgb * sky_cover_modulate.rgb) * sky_cover_texture.a * sky_cover_modulate.a * sky_energy;
+
+	c = (v_angle - (PI * 0.5)) / (PI * 0.5);
+	vec3 ground = mix(ground_horizon_color.rgb, ground_bottom_color.rgb, clamp(1.0 - pow(1.0 - c, 1.0 / ground_curve), 0.0, 1.0));
+	ground *= ground_energy;
+	
+	sky += cloudsMaker(EYEDIR);
+	
+	COLOR = mix(ground, sky, step(0.0, EYEDIR.y));
+}
+
+
+"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_pjo1h"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_a4toh"]
+width = 1024
+height = 1024
+seamless = true
+noise = SubResource("FastNoiseLite_pjo1h")
+
+[sub_resource type="Gradient" id="Gradient_t88wt"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_pu1xt"]
+seed = 1
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_w3v6g"]
+width = 1024
+height = 1024
+seamless = true
+color_ramp = SubResource("Gradient_t88wt")
+noise = SubResource("FastNoiseLite_pu1xt")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_srvvb"]
+shader = SubResource("Shader_vn0av")
+shader_parameter/sky_top_color = Color(0.313726, 0.603922, 0.815686, 1)
+shader_parameter/sky_horizon_color = Color(0.537255, 0.764706, 0.909804, 1)
+shader_parameter/sky_curve = 0.15
+shader_parameter/sky_energy = 1.0
+shader_parameter/sky_cover_modulate = Color(1, 1, 1, 1)
+shader_parameter/ground_bottom_color = Color(0.211765, 0.254902, 0.231373, 1)
+shader_parameter/ground_horizon_color = Color(0.443137, 0.45098, 0.466667, 1)
+shader_parameter/ground_curve = 0.02
+shader_parameter/ground_energy = 1.0
+shader_parameter/sun_angle_max = 0.523599
+shader_parameter/sun_curve = 0.15
+shader_parameter/cloud_direction = Vector2(-1, 1)
+shader_parameter/cloud_direction2 = Vector2(-1, 1)
+shader_parameter/cloud_scale = Vector2(0.02, 0.02)
+shader_parameter/cloud_distance = 0.02
+shader_parameter/cloud_speed = 0.02
+shader_parameter/cloud_speed2 = 0.02
+shader_parameter/cloud_texture = SubResource("NoiseTexture2D_a4toh")
+shader_parameter/cloud_texture2 = SubResource("NoiseTexture2D_w3v6g")
+
+[sub_resource type="Sky" id="Sky_bqy7i"]
+sky_material = SubResource("ShaderMaterial_srvvb")
+
+[sub_resource type="Environment" id="Environment_axh0p"]
+background_mode = 2
+sky = SubResource("Sky_bqy7i")
+ambient_light_color = Color(0.654902, 0.654902, 0.654902, 1)
+tonemap_mode = 3
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yuyqy"]
+albedo_texture = ExtResource("1_kppni")
+uv1_scale = Vector3(10, 10, 10)
+uv1_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_246w8"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_q3gca"]
+points = PackedVector3Array(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_j4vlv"]
+albedo_texture = ExtResource("2_2h213")
+uv1_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_01w5f"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_k1ohi"]
+points = PackedVector3Array(-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o6edm"]
+albedo_texture = ExtResource("3_pvsrw")
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_5ua5i"]
+data = PackedVector3Array(-0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_pb105"]
+data = PackedVector3Array(-0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_1kt57"]
+data = PackedVector3Array(-0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_rsp2w"]
+data = PackedVector3Array(-0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5)
+
+[node name="Environment" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_axh0p")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.157986, 0.987441, 0, -0.987441, 0.157986, 0, 88.4369, 0)
+light_color = Color(0.976471, 0.92549, 0.592157, 1)
+shadow_enabled = true
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+transform = Transform3D(100, 0, 0, 0, 1, 0, 0, 0, 100, 0, 0, 3.55941)
+material_override = SubResource("StandardMaterial3D_yuyqy")
+mesh = SubResource("BoxMesh_246w8")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_q3gca")
+
+[node name="Box" type="MeshInstance3D" parent="."]
+transform = Transform3D(9.54285, 0, 0, 0, 9.54285, 0, 0, 0, 9.54285, 35.0519, 5.26301, 28.5385)
+material_override = SubResource("StandardMaterial3D_j4vlv")
+mesh = SubResource("BoxMesh_01w5f")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Box"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Box/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_k1ohi")
+
+[node name="Ramp" type="MeshInstance3D" parent="."]
+transform = Transform3D(4.49968, 0, 0, 0, 3.75287, 0, 0, 0, 2.2464, 2.45189, 2.36003, -10.0857)
+material_override = SubResource("StandardMaterial3D_o6edm")
+mesh = SubResource("BoxMesh_01w5f")
+
+[node name="Slope" type="MeshInstance3D" parent="Ramp"]
+transform = Transform3D(1, -8.88178e-16, 0, 0, 0.117352, -1.20146, 0, 0.11319, 3.47654, 2.38419e-07, -0.160785, 2.18023)
+material_override = SubResource("StandardMaterial3D_o6edm")
+mesh = SubResource("BoxMesh_01w5f")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ramp/Slope"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Slope/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_5ua5i")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ramp"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_pb105")
+
+[node name="Platform" type="MeshInstance3D" parent="."]
+transform = Transform3D(4.66321, 0, 0, 0, 2.48913, 0, 0, 0, 0.89632, -22.5275, 1.71691, 23.0745)
+material_override = ExtResource("1_4ueoe")
+mesh = SubResource("BoxMesh_01w5f")
+
+[node name="Box4" type="MeshInstance3D" parent="Platform"]
+transform = Transform3D(1, 0, 0, 0, -9.23566e-08, 0.360093, 0, -5.86759, -4.37112e-08, 0, 0.319735, -3.4484)
+material_override = ExtResource("1_4ueoe")
+mesh = SubResource("BoxMesh_01w5f")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Platform/Box4"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Platform/Box4/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_1kt57")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Platform"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Platform/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_rsp2w")
